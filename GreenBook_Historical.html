@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Green Book: Journey to the North</title>
+    <style>
+        :root {
+            --green: #2c5e2e; /* Darker, more serious green */
+            --paper: #f4e4bc; /* Aged paper look */
+            --ink: #2b2b2b;
+            --gold: #c5a059;
+            --danger: #8b0000;
+            --safe: #2e8b57;
+        }
+
+        body {
+            font-family: 'Georgia', serif;
+            background-color: #121212;
+            color: var(--ink);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* Layout Container */
+        #game-layout {
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            max-width: 900px;
+            width: 100%;
+            background: var(--paper);
+            box-shadow: 0 0 60px rgba(0,0,0,0.9);
+            border: 8px solid var(--green);
+            min-height: 600px;
+        }
+
+        /* Left Sidebar: The Map */
+        #map-panel {
+            background: #e6d5aa;
+            border-right: 4px double var(--green);
+            padding: 20px 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .map-title {
+            font-family: 'Impact', sans-serif;
+            color: var(--green);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .route-container {
+            position: relative;
+            height: 100%;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 20px;
+        }
+
+        /* The vertical line connecting cities */
+        .route-line {
+            position: absolute;
+            left: 50%;
+            top: 10px;
+            bottom: 10px;
+            width: 4px;
+            background: #bbb;
+            transform: translateX(-50%);
+            z-index: 0;
+        }
+
+        .city-node {
+            z-index: 1;
+            background: #bbb;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            border: 2px solid var(--paper);
+            position: relative;
+            transition: all 0.5s;
+        }
+
+        .city-node.visited { background: var(--green); border-color: var(--gold); }
+        .city-node.current { 
+            background: var(--gold); 
+            transform: scale(1.5); 
+            box-shadow: 0 0 10px var(--gold);
+        }
+
+        .city-label {
+            position: absolute;
+            left: 25px;
+            top: -4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #666;
+            width: 120px;
+        }
+
+        .visited .city-label { color: var(--green); }
+        .current .city-label { color: #000; font-size: 0.85rem; }
+
+        /* Right Panel: The Dashboard & Events */
+        #main-panel {
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Stats Header */
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--green);
+        }
+
+        .stat-box {
+            text-align: center;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+        
+        .stat-val { display: block; font-size: 1.4rem; color: var(--green); margin-top: 5px; }
+        .danger-text { color: var(--danger) !important; }
+
+        /* Content Area */
+        .content-area {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        h2 { margin-top: 0; color: var(--green); font-size: 1.8rem; border-bottom: 1px solid #ccc; padding-bottom: 10px; }
+        
+        .narrative {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .quote {
+            background: rgba(255,255,255,0.5);
+            border-left: 4px solid var(--gold);
+            padding: 15px;
+            font-style: italic;
+            margin: 15px 0;
+        }
+
+        /* Buttons */
+        .choice-btn {
+            background: var(--green);
+            color: white;
+            border: none;
+            padding: 18px;
+            width: 100%;
+            margin: 8px 0;
+            font-family: sans-serif;
+            font-size: 1rem;
+            font-weight: bold;
+            text-align: left;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .choice-btn:hover { background: #1e3d1a; transform: translateX(5px); }
+        .choice-btn span { font-weight: normal; font-size: 0.9em; opacity: 0.9; }
+
+        .hidden { display: none !important; }
+
+        /* Screens */
+        #start-screen { text-align: center; padding: 40px; }
+        #end-screen { text-align: center; }
+
+    </style>
+</head>
+<body>
+
+<div id="game-layout">
+    <div id="map-panel">
+        <div class="map-title">Route 41</div>
+        <div class="route-container" id="map-route">
+            <div class="route-line"></div>
+            </div>
+    </div>
+
+    <div id="main-panel">
+        
+        <div class="dashboard" id="stats-bar">
+            <div class="stat-box">GAS<span class="stat-val" id="fuel">100%</span></div>
+            <div class="stat-box">FUNDS<span class="stat-val" id="money">$25.00</span></div>
+            <div class="stat-box">SPIRIT<span class="stat-val" id="spirit">100</span></div>
+            <div class="stat-box">TENSION<span class="stat-val" id="tension">0%</span></div>
+        </div>
+
+        <div class="content-area">
+            
+            <div id="start-screen">
+                <h1 style="font-family:Impact; color:var(--green); font-size: 3rem; margin-bottom: 10px;">THE GREEN BOOK</h1>
+                <h3 style="margin-top:0;">Athens, GA &rarr; Chicago, IL (1954)</h3>
+                <p>You are driving your family north for a better life. You have a <b>1949 Sedan</b>, a <b>Shoebox Lunch</b>, and a copy of <b>Victor Green's Guide</b>.</p>
+                <p>The road is long, and not every town is safe after dark.</p>
+                <button class="choice-btn" onclick="startGame()" style="text-align:center; justify-content:center;">START ENGINE</button>
+            </div>
+
+            <div id="game-screen" class="hidden">
+                <h2 id="location-title">Location Name</h2>
+                <div class="narrative" id="story-text"></div>
+                <div class="quote" id="dialogue-text"></div>
+                
+                <div id="choices-container">
+                    </div>
+            </div>
+
+            <div id="end-screen" class="hidden">
+                <h1 id="end-title"></h1>
+                <p id="end-reason" class="narrative"></p>
+                <button class="choice-btn" onclick="location.reload()" style="justify-content:center;">TRY AGAIN</button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- HISTORICAL DATA ---
+    const locations = [
+        {
+            id: 0,
+            name: "Athens, GA",
+            type: "start",
+            desc: "You pack the car in the dim light of dawn near the Morton Theatre. Your neighbors wave nervously. You have a full tank and a shoebox full of fried chicken.",
+            quote: "Your wife holds the map. 'Keep to the main roads, but not too main. Let's just get to Atlanta.'",
+        },
+        {
+            id: 1,
+            name: "Atlanta, GA",
+            type: "safe",
+            title: "Safe Haven: Auburn Ave",
+            desc: "You arrive in 'Sweet Auburn', the richest Negro street in the world. The neon sign of the **Hotel Royal** (214 Auburn Ave) buzzes warmly.",
+            quote: "A porter nods at you. 'You folks look tired. We got rooms, or you can grab a meal at Paschal's if you're pressing on.'",
+            cost: 5.00
+        },
+        {
+            id: 2,
+            name: "Dalton, GA",
+            type: "risk",
+            title: "The Open Road",
+            desc: "The road winds through the foothills. A state trooper has been trailing you for six miles. The children are perfectly silent.",
+            quote: "Your son whispers, 'Is he going to stop us?'"
+        },
+        {
+            id: 3,
+            name: "Chattanooga, TN",
+            type: "safe",
+            title: "Safe Haven: 9th Street",
+            desc: "You cross the state line into Chattanooga. The 'Big 9' district is alive with music. You see the **Martin Hotel** listed in your book.",
+            quote: "You hear Blues drifting from a club. For a moment, you feel like a human being again.",
+            cost: 4.50
+        },
+        {
+            id: 4,
+            name: "Rural Tennessee",
+            type: "danger",
+            title: "Sundown County",
+            desc: "You missed a turn. The sun is setting and you are in a county with no listings in the Green Book. A sign reads: 'Don't Let The Sun Set On You Here'.",
+            quote: "The gas light flickers. You can't stop here. You just can't.",
+        },
+        {
+            id: 5,
+            name: "Nashville, TN",
+            type: "safe",
+            title: "Safe Haven: Jefferson St",
+            desc: "Nashville. You pull up to **Brown's Hotel** on Jefferson Street. It's crowded but safe. Fisk University students are debating in the lobby.",
+            quote: "Hotel Clerk: 'Room for the night? Or just gas and water? Keep your head up, brother.'",
+            cost: 6.00
+        },
+        {
+            id: 6,
+            name: "Kentucky Border",
+            type: "risk",
+            title: "The Long Stretch",
+            desc: "Crossing into Kentucky. Rain hammers the windshield. You're tired, and the wipers are failing. You see a 'White Only' diner glowing in the storm.",
+            quote: "Your stomach growls. The shoebox is empty."
+        },
+        {
+            id: 7,
+            name: "Indianapolis, IN",
+            type: "safe",
+            title: "Safe Haven: Indiana Ave",
+            desc: "You reach Indianapolis. The **Blue Eagle Restaurant** on Indiana Avenue smells like heaven. You are close now.",
+            quote: "Waitress: 'Coffee's hot. You headed to Chicago? A lot of folks going that way lately.'",
+            cost: 5.50
+        },
+        {
+            id: 8,
+            name: "Chicago, IL",
+            type: "end",
+            title: "The Promised Land",
+            desc: "The skyline rises like a mountain range of steel. You pull into Bronzeville. You made it.",
+            quote: "Your wife begins to cry. 'We're here. We're actually here.'"
+        }
+    ];
+
+    // --- STATE MANAGEMENT ---
+    let state = {
+        locIndex: 0,
+        fuel: 100,     // Percentage
+        money: 25.00,  // Dollars (1954 value)
+        spirit: 100,   // Health
+        tension: 0     // Risk meter (0-100)
+    };
+
+    function startGame() {
+        document.getElementById('start-screen').classList.add('hidden');
+        document.getElementById('game-screen').classList.remove('hidden');
+        initMap();
+        loadLocation(0);
+        updateStats();
+    }
+
+    // --- MAP RENDERER ---
+    function initMap() {
+        const mapContainer = document.getElementById('map-route');
+        // Clear existing nodes except line
+        mapContainer.innerHTML = '<div class="route-line"></div>';
+        
+        locations.forEach((loc, index) => {
+            let node = document.createElement('div');
+            node.className = 'city-node';
+            node.id = `node-${index}`;
+            node.innerHTML = `<div class="city-label">${loc.name}</div>`;
+            mapContainer.appendChild(node);
+        });
+    }
+
+    function updateMap(currentIndex) {
+        locations.forEach((loc, i) => {
+            let node = document.getElementById(`node-${i}`);
+            node.classList.remove('visited', 'current');
+            if (i < currentIndex) node.classList.add('visited');
+            if (i === currentIndex) node.classList.add('current');
+        });
+    }
+
+    // --- CORE GAME LOOP ---
+    function loadLocation(index) {
+        state.locIndex = index;
+        updateMap(index);
+        
+        const loc = locations[index];
+        const titleEl = document.getElementById('location-title');
+        const descEl = document.getElementById('story-text');
+        const quoteEl = document.getElementById('dialogue-text');
+        const btnsEl = document.getElementById('choices-container');
+
+        // Check for Game Over conditions before rendering
+        if (state.fuel <= 0) return gameOver("Out of Gas", "You ran dry on a lonely road. Walking for help wasn't an option.");
+        if (state.spirit <= 0) return gameOver("Broken Spirit", " The constant fear and indignity was too much. You turned back south.");
+        if (state.tension >= 100) return gameOver("The Law", "The tension drew attention. The Sheriff pulled you over. You never made it to Chicago.");
+
+        // Render Text
+        titleEl.innerText = loc.title || loc.name;
+        descEl.innerHTML = loc.desc; // Allow bold tags
+        quoteEl.innerText = loc.quote;
+
+        // Render Choices
+        btnsEl.innerHTML = '';
+
+        if (loc.type === 'start') {
+            addButton("Begin the Journey", "Drive North", () => travel(1));
+        } 
+        else if (loc.type === 'end') {
+            addButton("Finish", "Welcome Home", () => gameOver("Victory", "Welcome to Bronzeville. You have navigated the Jim Crow South and brought your family to freedom.", true));
+        }
+        else if (loc.type === 'safe') {
+            // Safe Haven Choices
+            addButton(`Stay at ${loc.name} Hotel`, `Cost: $${loc.cost} | -30% Tension, +20 Spirit`, () => {
+                if(state.money >= loc.cost) {
+                    state.money -= loc.cost;
+                    state.tension = Math.max(0, state.tension - 30);
+                    state.spirit = Math.min(100, state.spirit + 20);
+                    state.fuel = 100; // Refuel at cities
+                    travel(1);
+                } else {
+                    alert("Not enough money!");
+                }
+            });
+            addButton("Just Get Gas & Go", "Cost: $2.00 | Tension stays same", () => {
+                 if(state.money >= 2.00) {
+                    state.money -= 2.00;
+                    state.fuel = 100;
+                    state.tension += 10; // Rushing adds slight stress
+                    travel(1);
+                 } else {
+                    alert("Not enough money for gas!");
+                 }
+            });
+        }
+        else if (loc.type === 'danger' || loc.type === 'risk') {
+            // Dangerous Choices
+            addButton("Drive Carefully (Slow)", "-20 Fuel | +10 Tension", () => {
+                state.fuel -= 20;
+                state.tension += 10;
+                travel(1);
+            });
+            addButton("Speed Through (Fast)", "-30 Fuel | +30 Tension | High Risk", () => {
+                state.fuel -= 30;
+                state.tension += 30; // High risk
+                if(Math.random() > 0.7) state.spirit -= 10; // Random bad event
+                travel(1);
+            });
+        }
+
+        updateStats();
+    }
+
+    function travel(steps) {
+        state.locIndex += steps;
+        // Base travel costs
+        state.fuel -= 10; 
+        state.spirit -= 5;
+        
+        // Random flavor events during travel
+        if (Math.random() > 0.7) {
+            state.tension += 10; // Random patrol car sighting
+        }
+
+        loadLocation(state.locIndex);
+    }
+
+    function addButton(mainText, subText, onClick) {
+        const btn = document.createElement('button');
+        btn.className = 'choice-btn';
+        btn.innerHTML = `${mainText} <span>${subText}</span>`;
+        btn.onclick = onClick;
+        document.getElementById('choices-container').appendChild(btn);
+    }
+
+    function updateStats() {
+        document.getElementById('fuel').innerText = state.fuel + "%";
+        document.getElementById('money').innerText = "$" + state.money.toFixed(2);
+        document.getElementById('spirit').innerText = state.spirit;
+        
+        const tensionEl = document.getElementById('tension');
+        tensionEl.innerText = state.tension + "%";
+        
+        if(state.tension > 70) tensionEl.classList.add('danger-text');
+        else tensionEl.classList.remove('danger-text');
+        
+        if(state.fuel < 20) document.getElementById('fuel').classList.add('danger-text');
+        else document.getElementById('fuel').classList.remove('danger-text');
+    }
+
+    function gameOver(title, reason, win = false) {
+        document.getElementById('game-screen').classList.add('hidden');
+        document.getElementById('end-screen').classList.remove('hidden');
+        
+        const t = document.getElementById('end-title');
+        t.innerText = title;
+        t.style.color = win ? "var(--green)" : "var(--danger)";
+        
+        document.getElementById('end-reason').innerText = reason;
+    }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Black Card Revoked: Deep History</title>
+    <style>
+        body {
+            background-color: #000;
+            color: #fff;
+            font-family: 'Arial Black', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            text-transform: uppercase;
+        }
+
+        #game-container {
+            background: #111;
+            border: 5px solid #FFD700;
+            padding: 30px;
+            width: 90%;
+            max-width: 600px;
+            text-align: center;
+            border-radius: 10px;
+            box-shadow: 0 0 50px rgba(255, 215, 0, 0.1);
+        }
+
+        .screen { display: none; }
+        .active { display: block; }
+
+        h1 { color: #FFD700; font-size: 2rem; margin-top: 0; margin-bottom: 10px; }
+        
+        #image-container {
+            width: 100%;
+            height: 250px;
+            background: #222;
+            margin: 15px 0;
+            overflow: hidden;
+            border: 2px solid #333;
+            border-radius: 8px;
+        }
+
+        #q-image { width: 100%; height: 100%; object-fit: cover; }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 15px;
+        }
+
+        button {
+            background: #222;
+            color: #fff;
+            border: 2px solid #FFD700;
+            padding: 15px;
+            cursor: pointer;
+            font-weight: bold;
+            font-family: 'Arial', sans-serif;
+            transition: 0.1s;
+        }
+
+        button:hover { background: #FFD700; color: #000; }
+
+        .correct { background: #00ff88 !important; color: #000; border-color: #00ff88 !important; }
+        .wrong { background: #ff3e3e !important; color: #fff; border-color: #ff3e3e !important; }
+
+        .main-btn {
+            background: #FFD700;
+            color: #000;
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            margin-top: 20px;
+            border: none;
+        }
+
+        #strike-display { color: #ff3e3e; font-size: 1.2rem; margin-bottom: 10px; letter-spacing: 5px; }
+        #question-text { text-transform: none; font-family: Arial; font-size: 1.1rem; line-height: 1.4; min-height: 3.5rem; }
+        #counter { color: #FFD700; font-size: 0.9rem; margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <div id="start-screen" class="screen active">
+            <h1>BLACK CARD REVOKED</h1>
+            <p style="color: #ff3e3e;">DEEP HISTORY EDITION</p>
+            <p style="text-transform: none; font-family: Arial;">20 Deep-Dive Questions. 3 Strikes and you lose your card.</p>
+            <button class="main-btn" onclick="startGame()">START CHALLENGE</button>
+        </div>
+
+        <div id="quiz-screen" class="screen">
+            <div id="counter">QUESTION 1/20</div>
+            <div id="strike-display"></div>
+            <div id="image-container"><img id="q-image" src=""></div>
+            <div id="question-text"></div>
+            <div class="options-grid" id="options-container"></div>
+            <button id="next-btn" class="main-btn" style="display:none;" onclick="nextQuestion()">CONTINUE</button>
+        </div>
+
+        <div id="end-screen" class="screen">
+            <h1 id="end-title">GAME OVER</h1>
+            <p id="final-score" style="font-size: 2.5rem; margin: 15px 0; color: #FFD700;"></p>
+            <p id="commentary" style="text-transform: none; font-family: Arial; padding: 0 20px; line-height: 1.5;"></p>
+            <button class="main-btn" onclick="location.reload()">RETRY CHALLENGE</button>
+        </div>
+    </div>
+
+    <script>
+        const questions = [
+            { q: "Who was the first person of African descent to be a published poet in America?", img: "https://upload.wikimedia.org/wikipedia/commons/e/ef/Phillis_Wheatley_frontispiece.jpg", options: ["Maya Angelou", "Phillis Wheatley", "Alice Walker", "Lucy Terry"], correct: 1 },
+            { q: "This man created the first wood clock in America and helped survey Washington D.C.", img: "https://upload.wikimedia.org/wikipedia/commons/1/10/BenjaminBanneker.jpg", options: ["Garrett Morgan", "Lewis Latimer", "Benjamin Banneker", "Elijah McCoy"], correct: 2 },
+            { q: "In 1921, 'Black Wall Street' was destroyed in which city?", img: "https://upload.wikimedia.org/wikipedia/commons/3/30/Tulsa_race_riot_1921.jpg", options: ["Atlanta", "Chicago", "Tulsa", "Detroit"], correct: 2 },
+            { q: "Who was the first Black woman to receive a U.S. patent?", img: "https://upload.wikimedia.org/wikipedia/commons/4/4b/Sarah_Goode_Cabinet_Bed.png", options: ["Sarah E. Goode", "Madam C.J. Walker", "Mary Kenner", "Ellen Eglin"], correct: 0 },
+            { q: "Which African empire was ruled by Mansa Musa, the wealthiest man in history?", img: "https://upload.wikimedia.org/wikipedia/commons/e/e1/Mansa_Musa.jpg", options: ["Songhai", "Ghana", "Mali", "Kush"], correct: 2 },
+            { q: "Who was the 'Black Mozart,' a champion fencer and violin virtuoso?", img: "https://upload.wikimedia.org/wikipedia/commons/a/ae/Joseph_Bologne_de_Saint-George.jpg", options: ["Duke Ellington", "Joseph Bologne", "Miles Davis", "Scott Joplin"], correct: 1 },
+            { q: "This woman was a self-made millionaire who revolutionized hair care.", img: "https://upload.wikimedia.org/wikipedia/commons/6/6d/Madam_CJ_Walker_in_car.jpg", options: ["Annie Malone", "Madam C.J. Walker", "Maggie Walker", "Elizabeth Keckley"], correct: 1 },
+            { q: "Who was the first Black man nominated for Oscar Best Actor?", img: "https://upload.wikimedia.org/wikipedia/commons/c/c2/Sidney_Poitier_1968.jpg", options: ["Harry Belafonte", "Sidney Poitier", "James Earl Jones", "Paul Robeson"], correct: 1 },
+            { q: "Which inventor improved the lightbulb with the carbon filament?", img: "https://upload.wikimedia.org/wikipedia/commons/8/87/Lewis_Latimer.jpg", options: ["Thomas Edison", "Lewis Latimer", "Granville Woods", "Jan Matzeliger"], correct: 1 },
+            { q: "What was the name of the first Black-owned newspaper in the U.S.?", img: "https://upload.wikimedia.org/wikipedia/commons/1/18/Freedoms_Journal.gif", options: ["The North Star", "The Chicago Defender", "Freedom's Journal", "The Crisis"], correct: 2 },
+            { q: "Who was the first Black woman to serve as a U.S. Ambassador?", img: "https://upload.wikimedia.org/wikipedia/commons/8/8c/Patricia_Roberts_Harris.jpg", options: ["Condoleezza Rice", "Patricia Roberts Harris", "Susan Rice", "Shirley Chisholm"], correct: 1 },
+            { q: "Which queen of the Ndongo Kingdom fought against Portuguese slave traders?", img: "https://upload.wikimedia.org/wikipedia/commons/6/69/Nzinga.jpg", options: ["Queen Amina", "Queen Nzinga", "Queen Sheba", "Queen Nefertiti"], correct: 1 },
+            { q: "Who established 'Negro History Week' in 1926?", img: "https://upload.wikimedia.org/wikipedia/commons/e/ef/Carter_G_Woodson.jpg", options: ["W.E.B. Du Bois", "Carter G. Woodson", "Marcus Garvey", "Booker T. Washington"], correct: 1 },
+            { q: "Which unit of Black pilots never lost a bomber to enemy fire in WWII?", img: "https://upload.wikimedia.org/wikipedia/commons/5/52/Tuskegee_Airmen_Pilots.jpg", options: ["Buffalo Soldiers", "Tuskegee Airmen", "Harlem Hellfighters", "The Red Tails"], correct: 1 },
+            { q: "Who was the first Black woman to win a Grand Slam title?", img: "https://upload.wikimedia.org/wikipedia/commons/7/75/Althea_Gibson_1956.jpg", options: ["Serena Williams", "Althea Gibson", "Venus Williams", "Sloane Stephens"], correct: 1 },
+            { q: "Which doctor performed the first successful open-heart surgery?", img: "https://upload.wikimedia.org/wikipedia/commons/c/ce/Daniel_Hale_Williams.jpg", options: ["Charles Drew", "Percy Julian", "Daniel Hale Williams", "Vivien Thomas"], correct: 2 },
+            { q: "Who was the first Black woman to run for President of the United States?", img: "https://upload.wikimedia.org/wikipedia/commons/d/df/Shirley_Chisholm.jpg", options: ["Charlene Mitchell", "Shirley Chisholm", "Barbara Jordan", "Angela Davis"], correct: 0 },
+            { q: "The term 'The Real McCoy' comes from which Black inventor?", img: "https://upload.wikimedia.org/wikipedia/commons/e/e0/Elijah_McCoy.jpg", options: ["Elijah McCoy", "Garrett Morgan", "Lewis Latimer", "Jan Matzeliger"], correct: 0 },
+            { q: "Which Black scientist discovered over 300 uses for the peanut?", img: "https://upload.wikimedia.org/wikipedia/commons/2/29/George_Washington_Carver.jpg", options: ["Percy Julian", "George W. Carver", "Ernest Just", "Alice Ball"], correct: 1 },
+            { q: "Who was the first Black person to win a Nobel Peace Prize?", img: "https://upload.wikimedia.org/wikipedia/commons/2/26/Ralph_Bunche_1951.jpg", options: ["MLK Jr.", "Ralph Bunche", "Desmond Tutu", "Nelson Mandela"], correct: 1 }
+        ];
+
+        let index = 0;
+        let score = 0;
+        let strikes = 0;
+        let canAnswer = true;
+
+        function startGame() {
+            document.getElementById('start-screen').classList.remove('active');
+            document.getElementById('quiz-screen').classList.add('active');
+            updateStrikes();
+            showQuestion();
+        }
+
+        function updateStrikes() {
+            document.getElementById('strike-display').innerText = "STRIKES: " + "❌".repeat(strikes);
+        }
+
+        function showQuestion() {
+            canAnswer = true;
+            const q = questions[index];
+            document.getElementById('counter').innerText = `QUESTION ${index + 1}/20`;
+            document.getElementById('q-image').src = q.img;
+            document.getElementById('question-text').innerText = q.q;
+            document.getElementById('next-btn').style.display = "none";
+            
+            const container = document.getElementById('options-container');
+            container.innerHTML = "";
+            
+            q.options.forEach((opt, i) => {
+                const btn = document.createElement('button');
+                btn.innerText = opt;
+                btn.onclick = () => check(i, btn);
+                container.appendChild(btn);
+            });
+        }
+
+        function check(i, btn) {
+            if(!canAnswer) return;
+            canAnswer = false;
+            const correct = questions[index].correct;
+            
+            if(i === correct) {
+                btn.classList.add('correct');
+                score++;
+            } else {
+                btn.classList.add('wrong');
+                document.querySelectorAll('.options-grid button')[correct].classList.add('correct');
+                strikes++;
+                updateStrikes();
+            }
+
+            if(strikes >= 3) {
+                setTimeout(endGame, 1200);
+            } else {
+                document.getElementById('next-btn').style.display = "inline-block";
+            }
+        }
+
+        function nextQuestion() {
+            index++;
+            if(index < questions.length) {
+                showQuestion();
+            } else {
+                endGame();
+            }
+        }
+
+        function endGame() {
+            document.getElementById('quiz-screen').classList.remove('active');
+            document.getElementById('end-screen').classList.add('active');
+            document.getElementById('final-score').innerText = score + " / " + questions.length;
+            
+            const comm = document.getElementById('commentary');
+            const title = document.getElementById('end-title');
+            
+            if(strikes >= 3) {
+                title.innerText = "CARD REVOKED";
+                title.style.color = "#ff3e3e";
+                comm.innerText = "You hit 3 strikes. That's a wrap. Your Black Card has been officially revoked. Go hit the library and try again!";
+            } else if (score >= 18) {
+                title.innerText = "HISTORIAN LEVEL";
+                title.style.color = "#00ff88";
+                comm.innerText = "Incredible. You know your roots. Your Black Card is now reinforced with titanium!";
+            } else {
+                title.innerText = "YOU SURVIVED";
+                title.style.color = "#FFD700";
+                comm.innerText = "You made it through the fire, but it was close. Keep studying the legends!";
+            }
+        }
+    </script>
+</body>
+</html>

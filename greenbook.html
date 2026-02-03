@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Green Book: Journey to the North</title>
+    <style>
+        :root {
+            --green: #2d5a27;
+            --gold: #f1c40f;
+            --danger: #c0392b;
+            --bg: #f4ece0;
+            --text: #2c3e50;
+        }
+
+        body {
+            font-family: 'Georgia', serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        #game-box {
+            background: white;
+            border: 8px solid var(--green);
+            width: 90%;
+            max-width: 500px;
+            padding: 20px;
+            box-shadow: 10px 10px 0px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .screen { display: none; }
+        .active { display: block; }
+
+        .stat-bar {
+            display: flex;
+            justify-content: space-around;
+            background: var(--green);
+            color: white;
+            padding: 10px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+
+        .event-card {
+            border: 2px dashed var(--green);
+            padding: 15px;
+            margin: 15px 0;
+            min-height: 100px;
+        }
+
+        button {
+            background: var(--green);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            margin: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            width: 100%;
+            font-family: 'Georgia', serif;
+        }
+
+        button:hover { background: #1e3d1a; }
+        
+        #map-progress {
+            height: 10px;
+            background: #ddd;
+            width: 100%;
+            margin: 10px 0;
+            position: relative;
+        }
+
+        #car-icon {
+            position: absolute;
+            left: 0%;
+            transition: 0.5s;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-box">
+    <div id="start-screen" class="screen active">
+        <h1 style="color: var(--green); margin-bottom: 0;">THE GREEN BOOK</h1>
+        <p><i>The Negro Motorist Green Book</i></p>
+        <p>The year is 1950. You are driving your family from Alabama to Chicago. You must use your guide to find safe places to sleep and eat.</p>
+        <button onclick="startGame()">START THE JOURNEY</button>
+    </div>
+
+    <div id="play-screen" class="screen">
+        <div class="stat-bar">
+            <span>FUEL: <span id="fuel">3</span></span>
+            <span>FOOD: <span id="food">3</span></span>
+            <span>SPIRITS: <span id="spirits">100</span>%</span>
+        </div>
+        
+        <div id="map-progress">
+            <div id="car-icon">🚗</div>
+        </div>
+        <p id="miles-display">950 Miles to Chicago</p>
+
+        <div class="event-card">
+            <p id="event-text">You've reached the outskirts of Birmingham. Night is falling.</p>
+        </div>
+
+        <div id="choices">
+            <button id="choice-1" onclick="handleChoice(1)"></button>
+            <button id="choice-2" onclick="handleChoice(2)"></button>
+        </div>
+    </div>
+
+    <div id="end-screen" class="screen">
+        <h1 id="end-title">JOURNEY OVER</h1>
+        <p id="end-msg"></p>
+        <button onclick="location.reload()">RETRY</button>
+    </div>
+</div>
+
+<script>
+    let fuel = 3;
+    let food = 3;
+    let spirits = 100;
+    let miles = 950;
+    let currentEvent = null;
+
+    const events = [
+        {
+            text: "You see a brightly lit diner. It is not in your Green Book.",
+            c1: { text: "Keep driving (Lose 1 Fuel)", fuel: -1, food: 0, spirits: -5, miles: 50 },
+            c2: { text: "Risk stopping (Chance of Delay)", fuel: 0, food: 1, spirits: -20, miles: 20 }
+        },
+        {
+            text: "You find an Esso Station. They are known to be friendly to Black travelers.",
+            c1: { text: "Fill up (Costs Money/Spirits)", fuel: 2, food: 0, spirits: -10, miles: 50 },
+            c2: { text: "Skip it to save money", fuel: -1, food: 0, spirits: 0, miles: 50 }
+        },
+        {
+            text: "A family friend in Nashville offers a place to stay.",
+            c1: { text: "Stay over (Restores Spirits)", fuel: 0, food: 1, spirits: 20, miles: 30 },
+            c2: { text: "Push through the night", fuel: -1, food: -1, spirits: -15, miles: 80 }
+        }
+    ];
+
+    function startGame() {
+        showScreen('play-screen');
+        nextEvent();
+    }
+
+    function showScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    }
+
+    function nextEvent() {
+        if (miles <= 0) return endGame(true);
+        if (fuel <= 0 || spirits <= 0) return endGame(false);
+
+        currentEvent = events[Math.floor(Math.random() * events.length)];
+        document.getElementById('event-text').innerText = currentEvent.text;
+        document.getElementById('choice-1').innerText = currentEvent.c1.text;
+        document.getElementById('choice-2').innerText = currentEvent.c2.text;
+    }
+
+    function handleChoice(num) {
+        const choice = (num === 1) ? currentEvent.c1 : currentEvent.c2;
+        
+        fuel += choice.fuel;
+        food += choice.food;
+        spirits += choice.spirits;
+        miles -= choice.miles;
+
+        if (spirits > 100) spirits = 100;
+
+        updateStats();
+        nextEvent();
+    }
+
+    function updateStats() {
+        document.getElementById('fuel').innerText = fuel;
+        document.getElementById('food').innerText = food;
+        document.getElementById('spirits').innerText = spirits;
+        document.getElementById('miles-display').innerText = miles + " Miles to Chicago";
+        
+        let progress = ((950 - miles) / 950) * 100;
+        document.getElementById('car-icon').style.left = progress + "%";
+    }
+
+    function endGame(win) {
+        showScreen('end-screen');
+        if (win) {
+            document.getElementById('end-title').innerText = "WELCOME TO CHICAGO";
+            document.getElementById('end-msg').innerText = "You made it! Through careful planning and the help of the Green Book, your family has reached the North safely.";
+        } else {
+            document.getElementById('end-title').innerText = "STRANDED";
+            document.getElementById('end-msg').innerText = "The journey was too difficult. Between the lack of fuel and the low spirits, you couldn't complete the trip.";
+        }
+    }
+</script>
+
+</body>
+</html>

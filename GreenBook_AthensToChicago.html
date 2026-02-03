@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Green Book: Athens to Chicago</title>
+    <style>
+        :root {
+            --green: #1e3d1a;
+            --gold: #d4af37;
+            --danger: #8b0000;
+            --paper: #fdf5e6;
+            --text: #2c3e50;
+        }
+
+        body {
+            font-family: 'Times New Roman', serif;
+            background-color: #1a1a1a;
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 10px;
+        }
+
+        #game-box {
+            background: var(--paper);
+            border: 10px double var(--green);
+            width: 100%;
+            max-width: 650px;
+            padding: 25px;
+            box-shadow: 0 0 50px rgba(0,0,0,0.8);
+        }
+
+        .screen { display: none; }
+        .active { display: block; }
+
+        h1 { font-family: 'Impact', sans-serif; color: var(--green); margin-top: 0; letter-spacing: 2px; text-align: center; }
+        
+        .stat-bar {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            background: var(--green);
+            color: var(--gold);
+            padding: 12px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            font-family: sans-serif;
+            font-size: 0.8rem;
+            text-align: center;
+        }
+
+        .event-card {
+            border: 1px solid #ccc;
+            padding: 20px;
+            background: white;
+            margin-bottom: 20px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
+            min-height: 150px;
+        }
+
+        .dialogue-box {
+            background: #f0f0f0;
+            padding: 12px;
+            border-left: 5px solid var(--gold);
+            font-style: italic;
+            margin: 15px 0;
+            color: #333;
+            line-height: 1.4;
+        }
+
+        button {
+            background: var(--green);
+            color: white;
+            border: 2px solid var(--gold);
+            padding: 15px;
+            margin: 8px 0;
+            cursor: pointer;
+            font-size: 0.9rem;
+            width: 100%;
+            font-family: sans-serif;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        button:hover { background: #2d5a27; color: var(--gold); }
+
+        #progress-container { margin: 20px 0; }
+        #map-line { height: 4px; background: #999; width: 100%; position: relative; }
+        #car { position: absolute; top: -10px; transition: 0.8s; font-size: 20px; }
+        
+        .shoebox-alert { color: var(--danger); font-size: 0.8rem; font-weight: bold; margin-top: 5px; }
+    </style>
+</head>
+<body>
+
+<div id="game-box">
+    <div id="start-screen" class="screen active">
+        <h1>THE GREEN BOOK</h1>
+        <p style="text-align:center;"><i>A Survival Journey: Athens, GA to Chicago, IL</i></p>
+        <p>Your family is counting on you. You've packed a <b>Shoebox Lunch</b> to avoid segregated diners, but it won't last forever. Manage your fuel, your food, and your family's dignity through the Sundown Towns of the 1950s.</p>
+        <button onclick="showScreen('play-screen'); nextEvent();">IGNITION</button>
+    </div>
+
+    <div id="play-screen" class="screen">
+        <div class="stat-bar">
+            <span>GAS: <span id="fuel">5</span></span>
+            <span>FOOD: <span id="food">4</span></span>
+            <span>SPIRITS: <span id="spirits">100</span>%</span>
+            <span>RISK: <span id="risk">Low</span></span>
+        </div>
+        
+        <div id="progress-container">
+            <div id="map-line"><div id="car">🚗</div></div>
+            <p id="miles-display" style="font-weight: bold; margin-top: 10px; text-align:center;">750 Miles to Chicago</p>
+        </div>
+
+        <div class="event-card">
+            <div id="event-desc" style="line-height:1.5;"></div>
+            <div id="dialogue" class="dialogue-box"></div>
+        </div>
+
+        <div id="choices">
+            <button id="choice-1" onclick="handleChoice(1)"></button>
+            <button id="choice-2" onclick="handleChoice(2)"></button>
+        </div>
+    </div>
+
+    <div id="end-screen" class="screen">
+        <h1 id="end-title"></h1>
+        <p id="end-msg" style="text-align:center;"></p>
+        <button onclick="location.reload()">RESTART JOURNEY</button>
+    </div>
+</div>
+
+<script>
+    let fuel = 5;
+    let food = 4;
+    let spirits = 100;
+    let miles = 750;
+    let risk = "Low";
+
+    const events = [
+        {
+            desc: "Passing through a 'Sundown Town' in Tennessee. The sun is dipping below the trees and the local sheriff is parked at the crossroads, watching your tags.",
+            quote: "Your son whispers: 'Daddy, I'm hungry. Can we open the shoebox?' You only have a few pieces of chicken left.",
+            c1: { text: "Keep driving and eat from the Shoebox", fuel: -1, food: -1, spirits: 5, miles: 60, risk: "Low" },
+            c2: { text: "Pull over to find a grocery back-door", fuel: 0, food: 1, spirits: -15, miles: 20, risk: "High" }
+        },
+        {
+            desc: "In Kentucky, a gas station attendant spits on the ground as you pull in. He says they don't have a 'colored' restroom and makes a crude comment about your wife's dress.",
+            quote: "Your wife: 'Don't say a word, baby. Just get the gas and let's go. It's not worth our lives.'",
+            c1: { text: "Swallow your pride and just get gas", fuel: 2, food: 0, spirits: -25, miles: 40, risk: "Low" },
+            c2: { text: "Tell the kids to go in the bushes and leave", fuel: -1, food: 0, spirits: -10, miles: 50, risk: "Medium" }
+        },
+        {
+            desc: "The car is overheating near the Ohio River. You see a house with a 'Welcome' sign, but it's not in the Green Book. You don't know who lives there.",
+            quote: "Your daughter asks: 'Is it safe here, Papa? The sign says welcome, but they don't look like us.'",
+            c1: { text: "Risk knocking for water", fuel: 0, food: 0, spirits: -5, miles: 10, risk: "Extreme" },
+            c2: { text: "Wait for the engine to cool in the dark", fuel: 0, food: -1, spirits: -20, miles: 30, risk: "High" }
+        },
+        {
+            desc: "You finally find a Black-owned hotel in Indianapolis. The smell of real soul food wafts from the kitchen.",
+            quote: "Hotel Owner: 'You folks look like you've seen enough road for one day. Come in and rest. No one will bother you here.'",
+            c1: { text: "Stay, rest, and refill the shoebox", fuel: -1, food: 3, spirits: 30, miles: 80, risk: "Low" },
+            c2: { text: "Just get food to-go and keep moving", fuel: 0, food: 2, spirits: 10, miles: 120, risk: "Low" }
+        },
+        {
+            desc: "You're 100 miles from Chicago. A flat tire forces you to the shoulder in a lonely stretch of woods.",
+            quote: "Your son: 'I'm scared, Daddy. It's too quiet out here.'",
+            c1: { text: "Change it quickly in the dark", fuel: 0, food: 0, spirits: -15, miles: 40, risk: "High" },
+            c2: { text: "Wait until sunrise to be safe", fuel: 0, food: -1, spirits: -10, miles: 0, risk: "Low" }
+        }
+    ];
+
+    function showScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    }
+
+    function updateDisplay() {
+        document.getElementById('fuel').innerText = fuel;
+        document.getElementById('food').innerText = food;
+        document.getElementById('spirits').innerText = spirits;
+        document.getElementById('risk').innerText = risk;
+        document.getElementById('miles-display').innerText = miles + " Miles to Chicago";
+        
+        let progress = ((750 - miles) / 750) * 100;
+        document.getElementById('car').style.left = `calc(${progress}% - 10px)`;
+        
+        const r = document.getElementById('risk');
+        if(risk === "High" || risk === "Extreme") r.style.color = "var(--danger)";
+        else r.style.color = "var(--gold)";
+    }
+
+    function nextEvent() {
+        if(miles <= 0) return endGame(true);
+        if(fuel <= 0 || spirits <= 0 || food <= 0) return endGame(false);
+
+        let ev = events[Math.floor(Math.random() * events.length)];
+        document.getElementById('event-desc').innerText = ev.desc;
+        document.getElementById('dialogue').innerText = ev.quote;
+        document.getElementById('choice-1').innerText = ev.c1.text;
+        document.getElementById('choice-2').innerText = ev.c2.text;
+        window.currentEv = ev;
+    }
+
+    function handleChoice(n) {
+        const c = (n === 1) ? window.currentEv.c1 : window.currentEv.c2;
+        fuel += c.fuel;
+        food += c.food;
+        spirits += c.spirits;
+        miles -= c.miles;
+        risk = c.risk;
+
+        if(spirits > 100) spirits = 100;
+        if(miles < 0) miles = 0;
+
+        updateDisplay();
+        nextEvent();
+    }
+
+    function endGame(win) {
+        showScreen('end-screen');
+        const t = document.getElementById('end-title');
+        const m = document.getElementById('end-msg');
+        if(win) {
+            t.innerText = "CHICAGO: THE PROMISED LAND";
+            m.innerText = "You pull onto 47th Street in Bronzeville. The relief on your wife's face is worth every mile. You've protected your family and your dignity. Welcome to the North.";
+        } else {
+            t.innerText = "THE ROAD WON";
+            t.style.color = "var(--danger)";
+            let reason = "The journey was too much.";
+            if (food <= 0) reason = "The Shoebox went empty and hunger forced you to turn back.";
+            if (fuel <= 0) reason = "You ran out of gas in a town where it wasn't safe to walk.";
+            if (spirits <= 0) reason = "The constant disrespect and fear broke your family's will to continue.";
+            m.innerText = reason + " The road in 1952 is a test of spirit as much as a test of driving.";
+        }
+    }
+</script>
+
+</body>
+</html>

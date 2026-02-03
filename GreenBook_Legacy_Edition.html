@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Green Book: Athens to Chicago</title>
+    <style>
+        :root {
+            --green: #1e3d1a;
+            --gold: #d4af37;
+            --danger: #8b0000;
+            --paper: #fdf5e6;
+            --text: #2c3e50;
+        }
+
+        body {
+            font-family: 'Times New Roman', serif;
+            background-color: #0b0b0b;
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 10px;
+        }
+
+        #game-box {
+            background: var(--paper);
+            border: 10px double var(--green);
+            width: 100%;
+            max-width: 700px;
+            padding: 25px;
+            box-shadow: 0 0 100px rgba(212, 175, 55, 0.2);
+        }
+
+        .screen { display: none; }
+        .active { display: block; }
+
+        h1 { font-family: 'Impact', sans-serif; color: var(--green); margin-top: 0; letter-spacing: 2px; text-align: center; border-bottom: 2px solid var(--green); }
+        
+        .stat-bar {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 5px;
+            background: var(--green);
+            color: var(--gold);
+            padding: 10px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            font-family: sans-serif;
+            font-size: 0.8rem;
+            text-align: center;
+        }
+
+        #inventory-container {
+            background: #d2b48c;
+            border: 2px solid #8b4513;
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .inv-items { display: flex; justify-content: center; gap: 20px; }
+        .item { display: flex; flex-direction: column; align-items: center; font-size: 0.7rem; }
+
+        #map-container {
+            background: #e5dcc5;
+            border: 2px solid #bba;
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            position: relative;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .map-node { font-size: 0.6rem; font-weight: bold; color: #776; text-align: center; width: 50px; }
+        #car-token { position: absolute; top: 15%; font-size: 1.3rem; transition: 1s ease-in-out; }
+
+        .event-card {
+            border: 1px solid #ccc;
+            padding: 15px;
+            background: white;
+            margin-bottom: 15px;
+            min-height: 160px;
+        }
+        .dialogue-box {
+            background: #f0f0f0;
+            padding: 10px;
+            border-left: 5px solid var(--gold);
+            font-style: italic;
+            margin: 10px 0;
+            font-size: 0.9rem;
+        }
+
+        button {
+            background: var(--green);
+            color: white;
+            border: 2px solid var(--gold);
+            padding: 12px;
+            margin: 5px 0;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            text-transform: uppercase;
+        }
+        
+        #legacy-content {
+            background: white;
+            padding: 20px;
+            border: 1px solid #ccc;
+            line-height: 1.6;
+            margin-top: 15px;
+            text-align: left;
+            font-size: 1.1rem;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-box">
+    <div id="start-screen" class="screen active">
+        <h1>THE GREEN BOOK</h1>
+        <p style="text-align:center;"><i>The Great Migration Journey</i></p>
+        <p>Athens, Georgia to Chicago, Illinois. It’s 1952. Your family’s future depends on your survival. If you reach the North with your pride intact, you leave a legacy for generations.</p>
+        <button onclick="showScreen('play-screen'); nextEvent();">DEPART ATHENS</button>
+    </div>
+
+    <div id="play-screen" class="screen">
+        <div class="stat-bar">
+            <span>GAS: <span id="fuel">5</span></span>
+            <span>SPIRITS: <span id="spirits">100</span>%</span>
+            <span>RISK: <span id="risk">Low</span></span>
+        </div>
+
+        <div id="inventory-container">
+            <div class="inv-items">
+                <div class="item"><span>🍗</span> x<span id="count-chicken">3</span></div>
+                <div class="item"><span>🥚</span> x<span id="count-egg">2</span></div>
+                <div class="item"><span>🍰</span> x<span id="count-cake">1</span></div>
+            </div>
+        </div>
+        
+        <div id="map-container">
+            <div id="car-token">🚗</div>
+            <div class="map-node">Athens</div>
+            <div class="map-node">Nashville</div>
+            <div class="map-node">Louisville</div>
+            <div class="map-node">Indy</div>
+            <div class="map-node">Chicago</div>
+        </div>
+
+        <div class="event-card">
+            <div id="event-desc" style="font-weight: bold;"></div>
+            <div id="dialogue" class="dialogue-box"></div>
+        </div>
+
+        <div id="choices">
+            <button id="choice-1" onclick="handleChoice(1)"></button>
+            <button id="choice-2" onclick="handleChoice(2)"></button>
+        </div>
+    </div>
+
+    <div id="end-screen" class="screen">
+        <h1 id="end-title"></h1>
+        <div id="legacy-content"></div>
+        <button onclick="location.reload()" style="margin-top:20px;">RESTART HISTORY</button>
+    </div>
+</div>
+
+<script>
+    let fuel = 5; let spirits = 100; let miles = 750; let risk = "Low";
+    let inventory = { chicken: 3, eggs: 2, cake: 1 };
+
+    const events = [
+        {
+            desc: "The radiator explodes. You're on a dark Kentucky shoulder near a house with an unfriendly flag.",
+            quote: "Wife: 'Henry, give the kids the cake. Keep them quiet while we wait for the engine to cool.'",
+            c1: { text: "Use Cake to calm the family", fuel: 0, spirits: -10, miles: 20, risk: "Medium", item: 'cake', change: -1 },
+            c2: { text: "Fix it now (Extreme Risk)", fuel: 0, spirits: -30, miles: 30, risk: "Extreme" }
+        },
+        {
+            desc: "A sheriff pulls you over in a Sundown Town. He looks hungry for trouble.",
+            quote: "Sheriff: 'You got food in that box, boy? Let me see it.'",
+            c1: { text: "Offer him the Chicken (Bribe)", fuel: 0, spirits: -40, miles: 50, risk: "Low", item: 'chicken', change: -1 },
+            c2: { text: "Keep it closed (Stand Ground)", fuel: 0, spirits: -20, miles: 40, risk: "High" }
+        },
+        {
+            desc: "A Black-owned hotel in Nashville offers a safe haven.",
+            quote: "Owner: 'Rest up. We'll refill your shoebox for the road ahead.'",
+            c1: { text: "Pay for full refill (Lose 1 Gas)", fuel: -1, spirits: 40, miles: 120, risk: "Low", refill: true },
+            c2: { text: "Just sleep and leave", fuel: 0, spirits: 10, miles: 130, risk: "Low" }
+        },
+        {
+            desc: "The Indiana border. No safe food for miles. The kids are starving.",
+            quote: "Son: 'Papa, I'm so hungry my head hurts.'",
+            c1: { text: "Eat the Eggs (Restore Spirits)", fuel: -1, spirits: 25, miles: 80, risk: "Low", item: 'eggs', change: -1 },
+            c2: { text: "Push on through the hunger", fuel: -1, spirits: -25, miles: 150, risk: "High" }
+        }
+    ];
+
+    function showScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    }
+
+    function updateDisplay() {
+        document.getElementById('fuel').innerText = fuel;
+        document.getElementById('spirits').innerText = spirits;
+        document.getElementById('risk').innerText = risk;
+        document.getElementById('miles-display').innerText = miles + " Miles to Chicago";
+        document.getElementById('count-chicken').innerText = inventory.chicken;
+        document.getElementById('count-egg').innerText = inventory.eggs;
+        document.getElementById('count-cake').innerText = inventory.cake;
+        let progress = ((750 - miles) / 750);
+        document.getElementById('car-token').style.left = (7 + (progress * 78)) + "%";
+    }
+
+    function handleChoice(n) {
+        const c = (n === 1) ? window.currentEv.c1 : window.currentEv.c2;
+        if(c.item && inventory[c.item] <= 0) { alert("You don't have that!"); return; }
+        if(c.item) inventory[c.item] += c.change;
+        if(c.refill) inventory = { chicken: 3, eggs: 2, cake: 1 };
+        
+        if (c.risk === "Extreme" && Math.random() > 0.4) return endGame(false, "A local group surrounded the car. You were forced to leave everything and flee.");
+        
+        fuel += c.fuel; spirits += c.spirits; miles -= c.miles; risk = c.risk;
+        if(spirits > 100) spirits = 100;
+        updateDisplay(); nextEvent();
+    }
+
+    function nextEvent() {
+        if(miles <= 0) return endGame(true);
+        if(fuel <= 0 || spirits <= 0) return endGame(false);
+        let ev = events[Math.floor(Math.random() * events.length)];
+        document.getElementById('event-desc').innerText = ev.desc;
+        document.getElementById('dialogue').innerText = ev.quote;
+        document.getElementById('choice-1').innerText = ev.c1.text;
+        document.getElementById('choice-2').innerText = ev.c2.text;
+        window.currentEv = ev;
+    }
+
+    function endGame(win, specialMsg) {
+        showScreen('end-screen');
+        const t = document.getElementById('end-title');
+        const l = document.getElementById('legacy-content');
+        if(win) {
+            t.innerText = "THE PROMISED LAND REACHED";
+            let legacyStr = `<h3>Family Legacy: The Chicago Years</h3>`;
+            legacyStr += `<p>You arrived in the Bronzeville neighborhood of Chicago with <b>${spirits}% Spirit</b> remaining.</p>`;
+            
+            if(spirits >= 80) {
+                legacyStr += `<p>Because you arrived with such high spirits, your son never forgot your strength. He grew up to become a civil rights attorney, inspired by the way you protected him on the road. Your family became a pillar of the community.</p>`;
+            } else if(spirits >= 40) {
+                legacyStr += `<p>The road took its toll, but you survived. Your family worked hard in the factories, and within ten years, you owned your own home. The stories of the 'Green Book' were passed down as warnings and badges of honor.</p>`;
+            } else {
+                legacyStr += `<p>You arrived scarred and exhausted. It took years to shake the fear of the road, but your children thrived in the Chicago schools. They never had to pack a shoebox lunch again.</p>`;
+            }
+            l.innerHTML = legacyStr;
+        } else {
+            t.innerText = "JOURNEY ENDED";
+            l.innerHTML = `<p>${specialMsg || "The road was too dangerous. Your family was forced to return to Georgia, the dream of the North left for another generation."}</p>`;
+        }
+    }
+</script>
+</body>
+</html>

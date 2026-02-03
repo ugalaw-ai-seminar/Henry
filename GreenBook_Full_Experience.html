@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Green Book: 1000 Miles to Chicago</title>
+    <style>
+        :root {
+            --green: #1b4332;
+            --gold: #ffb703;
+            --paper: #f1e3d3;
+            --ink: #252422;
+            --danger: #ae2012;
+            --road: #333;
+        }
+
+        body {
+            background-color: #0d1b1e;
+            color: var(--ink);
+            font-family: 'Georgia', serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-image: radial-gradient(#1b4332 0.5px, transparent 0.5px);
+            background-size: 30px 30px;
+        }
+
+        #game-box {
+            background: var(--paper);
+            border: 15px solid var(--green);
+            outline: 5px solid var(--gold);
+            width: 90%;
+            max-width: 900px;
+            min-height: 700px;
+            padding: 40px;
+            box-shadow: 0 0 100px rgba(0,0,0,0.8);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .screen { display: none; }
+        .active { display: flex; flex-direction: column; height: 100%; animation: fadeIn 0.8s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        h1 { 
+            font-family: 'Impact', sans-serif; 
+            font-size: 3.5rem; 
+            color: var(--green); 
+            text-align: center; 
+            margin: 0;
+            letter-spacing: 2px;
+            border-bottom: 4px double var(--green);
+        }
+
+        /* INSTRUCTIONS PAGE */
+        .manual {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 30px;
+            line-height: 1.6;
+        }
+        .manual-card {
+            background: rgba(255,255,255,0.5);
+            padding: 20px;
+            border: 1px solid var(--green);
+        }
+
+        /* HUD & MAP */
+        .hud {
+            display: flex;
+            justify-content: space-between;
+            background: var(--green);
+            color: var(--gold);
+            padding: 20px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+        }
+
+        #map-container {
+            background: #e9d8a6;
+            height: 150px;
+            border: 3px solid var(--ink);
+            position: relative;
+            margin-bottom: 30px;
+            background-image: url('https://www.transparenttextures.com/patterns/pinstriped-suit.png');
+        }
+
+        .highway {
+            position: absolute;
+            top: 50%;
+            width: 100%;
+            height: 10px;
+            background: var(--road);
+            border-top: 2px dashed white;
+            border-bottom: 2px dashed white;
+            transform: translateY(-50%);
+        }
+
+        .city-marker {
+            position: absolute;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+        .city-dot { width: 15px; height: 15px; background: white; border: 3px solid var(--green); border-radius: 50%; }
+        .city-name { font-size: 0.7rem; font-weight: bold; margin-top: 5px; color: var(--ink); }
+
+        #car {
+            position: absolute;
+            top: 25%;
+            font-size: 3rem;
+            transition: 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+            filter: drop-shadow(5px 5px 5px rgba(0,0,0,0.3));
+        }
+
+        /* INVENTORY */
+        .shoebox-display {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .item-slot {
+            background: #fff;
+            border: 2px solid var(--gold);
+            padding: 15px;
+            text-align: center;
+            border-radius: 8px;
+            box-shadow: 4px 4px 0px var(--green);
+        }
+        .item-slot span { display: block; font-size: 2rem; }
+        .item-slot b { font-size: 1.5rem; color: var(--green); }
+
+        /* SCENARIO */
+        .scenario-area {
+            background: white;
+            padding: 30px;
+            border: 1px solid #ccc;
+            flex-grow: 1;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+        .main-text { font-size: 1.2rem; line-height: 1.6; margin-bottom: 20px; }
+        .quote-box {
+            font-style: italic;
+            color: #444;
+            border-left: 8px solid var(--gold);
+            padding-left: 20px;
+            font-size: 1.1rem;
+        }
+
+        /* BUTTONS */
+        .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        button {
+            background: var(--green);
+            color: white;
+            border: 3px solid var(--gold);
+            padding: 20px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: 0.2s;
+        }
+        button:hover { background: #2d6a4f; transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+    </style>
+</head>
+<body>
+
+<div id="game-box">
+    <div id="screen-start" class="screen active">
+        <h1>THE GREEN BOOK</h1>
+        <p style="text-align:center; font-size: 1.2rem; font-style: italic;">"Travel is fatal to prejudice." — Mark Twain</p>
+        
+        <div class="manual">
+            <div class="manual-card">
+                <h2>THE MISSION</h2>
+                <p>You are Henry. You are driving your family 1,000 miles from <b>Athens, GA</b> to <b>Chicago, IL</b> in a 1950 Hudson Hornet. You must navigate a segregated landscape using your wits and your Shoebox Lunch.</p>
+            </div>
+            <div class="manual-card">
+                <h2>THE RULES</h2>
+                <ul>
+                    <li><b>GAS:</b> Don't let it hit zero in a Sundown Town.</li>
+                    <li><b>SPIRIT:</b> If your family loses hope, the journey fails.</li>
+                    <li><b>SHOEBOX:</b> Food isn't just for eating; it's for trading and bribing.</li>
+                </ul>
+            </div>
+        </div>
+        <button onclick="changeScreen('screen-play'); initGame();" style="margin-top: 40px;">CRANK THE ENGINE</button>
+    </div>
+
+    <div id="screen-play" class="screen">
+        <div class="hud">
+            <span>FUEL: <span id="g">10</span>/15</span>
+            <span>SPIRIT: <span id="s">100</span>%</span>
+            <span>DISTANCE: <span id="m">1000</span> MILES</span>
+        </div>
+
+        <div id="map-container">
+            <div class="highway"></div>
+            <div id="car">🚗</div>
+            <div class="city-marker" style="left: 5%"><div class="city-dot"></div><div class="city-name">ATHENS</div></div>
+            <div class="city-marker" style="left: 28%"><div class="city-dot"></div><div class="city-name">NASHVILLE</div></div>
+            <div class="city-marker" style="left: 50%"><div class="city-dot"></div><div class="city-name">LOUISVILLE</div></div>
+            <div class="city-marker" style="left: 73%"><div class="city-dot"></div><div class="city-name">INDIANAPOLIS</div></div>
+            <div class="city-marker" style="left: 95%"><div class="city-dot"></div><div class="city-name">CHICAGO</div></div>
+        </div>
+
+        <div class="shoebox-display">
+            <div class="item-slot"><span>🍗</span> CHICKEN<br><b id="i-c">4</b></div>
+            <div class="item-slot"><span>🥚</span> EGGS<br><b id="i-e">4</b></div>
+            <div class="item-slot"><span>🍰</span> CAKE<br><b id="i-k">2</b></div>
+            <div class="item-slot"><span>🍎</span> FRUIT<br><b id="i-f">3</b></div>
+        </div>
+
+        <div class="scenario-area">
+            <div class="main-text" id="text-desc"></div>
+            <div class="quote-box" id="text-quote"></div>
+        </div>
+
+        <div class="actions" id="btns"></div>
+    </div>
+</div>
+
+<script>
+    let fuel = 10, spirits = 100, miles = 1000;
+    let inv = { c: 4, e: 4, k: 2, f: 3 };
+    let deck = [];
+
+    const scenarios = [
+        {
+            d: "A 'Sundown Town' warning sign sits at the entrance to a dark Kentucky valley. Your fuel gauge is dipping dangerously low.",
+            q: "Wife: 'Henry, don't stop. Give the kids the Pound Cake to keep them quiet and just push through to the next county. We can't be seen here.'",
+            c1: { t: "Use Cake & Push Through", g: -2, s: -5, m: 120, item: 'k', r: 0 },
+            c2: { t: "Search for a back-road pump", g: 3, s: -20, m: 40, r: 0.4 }
+        },
+        {
+            d: "You arrive at a 'Green Book' Oasis in Nashville. It's a Black-owned jazz club with a motel in the back. The music is loud and welcoming.",
+            q: "Daughter: 'Papa, look! Everyone is smiling! Can we stay and hear the piano player?'",
+            c1: { t: "Stay & Rest (High Spirit)", g: -1, s: 40, m: 60, r: 0 },
+            c2: { t: "Restock food & leave now", g: 0, s: 10, m: 150, refill: true, r: 0 }
+        },
+        {
+            d: "The Hudson's radiator is boiling over. You're near an all-white farm. A group of men are sitting on the porch watching you.",
+            q: "Son: 'Papa, I'm scared. Should we go ask for water?' Henry: 'No, son. We'll offer them our fresh Fruit for a bucket of water. Keep it business-like.'",
+            c1: { t: "Trade Fruit for Water", g: 0, s: -10, m: 80, item: 'f', r: 0 },
+            c2: { t: "Attempt to fix it yourself", g: 0, s: -25, m: 60, r: 0.3 }
+        },
+        {
+            d: "An Indiana State Trooper pulls you over. He says your tail-light is 'flickering.' He's staring at the Shoebox on the seat.",
+            q: "Officer: 'You Georgia boys sure eat well. I haven't had a piece of fried chicken like that since I was a kid...'",
+            c1: { t: "Offer Chicken (Bribe)", g: 0, s: -30, m: 100, item: 'c', r: 0 },
+            c2: { t: "Keep it closed & Stay polite", g: 0, s: -15, m: 40, r: 0.5 }
+        },
+        {
+            d: "You hit a stretch of road with no safe stops for 200 miles. The kids are exhausted and haven't eaten since Tennessee.",
+            q: "Wife: 'Henry, pull over under these trees. We'll eat the Hard-Boiled Eggs and rest for an hour before the sun goes down.'",
+            c1: { t: "Stop and Eat Eggs", g: -1, s: 25, m: 80, item: 'e', r: 0 },
+            c2: { t: "Push to the next city", g: -2, s: -30, m: 160, r: 0 }
+        }
+    ];
+
+    function changeScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    }
+
+    function initGame() {
+        deck = [...scenarios].sort(() => Math.random() - 0.5);
+        updateUI();
+        nextEvent();
+    }
+
+    function updateUI() {
+        document.getElementById('g').innerText = fuel;
+        document.getElementById('s').innerText = spirits;
+        document.getElementById('m').innerText = Math.max(0, miles);
+        document.getElementById('i-c').innerText = inv.c;
+        document.getElementById('i-e').innerText = inv.e;
+        document.getElementById('i-k').innerText = inv.k;
+        document.getElementById('i-f').innerText = inv.f;
+        let p = ((1000 - miles) / 1000) * 90;
+        document.getElementById('car').style.left = Math.min(p + 5, 95) + "%";
+    }
+
+    function nextEvent() {
+        if (miles <= 0) return endGame(true);
+        if (fuel <= 0 || spirits <= 0) return endGame(false);
+        if (deck.length === 0) deck = [...scenarios].sort(() => Math.random() - 0.5);
+
+        let ev = deck.pop();
+        document.getElementById('text-desc').innerText = ev.d;
+        document.getElementById('text-quote').innerText = ev.q;
+        
+        const btnArea = document.getElementById('btns');
+        btnArea.innerHTML = "";
+        
+        [ev.c1, ev.c2].forEach(c => {
+            let b = document.createElement("button");
+            b.innerText = c.t;
+            b.onclick = () => handleChoice(c);
+            btnArea.appendChild(b);
+        });
+        updateUI();
+    }
+
+    function handleChoice(c) {
+        if (c.item && inv[c.item] <= 0) {
+            alert("Your Shoebox is out of that item! Choose another path.");
+            return;
+        }
+        if (c.r && Math.random() < c.r) return endGame(false, "The risk didn't pay off. You were detained by the local authorities.");
+
+        if (c.item) inv[c.item]--;
+        if (c.refill) inv = { c: 4, e: 4, k: 2, f: 3 };
+        
+        fuel += c.g;
+        spirits += c.spi || c.s;
+        miles -= c.m;
+        if (spirits > 100) spirits = 100;
+        
+        nextEvent();
+    }
+
+    function endGame(win, msg) {
+        changeScreen('screen-start');
+        const start = document.getElementById('screen-start');
+        start.innerHTML = `
+            <h1>${win ? "DESTINATION: CHICAGO" : "JOURNEY FAILED"}</h1>
+            <p style="text-align:center; font-size:1.4rem; padding: 20px;">
+                ${win ? "You made it to the South Side. You see the neon of the Regal Theater. Your family is home." : (msg || "The road was too long and the obstacles too great.")}
+            </p>
+            <button onclick="location.reload()" style="width: 100%;">RESTART THE GREAT MIGRATION</button>
+        `;
+    }
+</script>
+</body>
+</html>
