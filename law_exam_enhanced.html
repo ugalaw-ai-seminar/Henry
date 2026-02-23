@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Law Exam Simulator - Enhanced</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-in { animation: fadeIn 0.4s ease-out; }
+        .loading-spinner { border: 3px solid #f3f4f6; border-top: 3px solid #3b82f6; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .timer-warning { color: #ef4444; animation: pulse 1s ease-in-out infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <!-- Header -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h1 class="text-3xl font-bold text-slate-900 mb-2">📝 Law Exam Simulator - Enhanced</h1>
+            <p class="text-gray-600">Practice with AI-generated exams or your professor's past exams</p>
+        </div>
+
+        <!-- Exam Setup Screen -->
+        <div id="setupScreen" class="bg-white rounded-lg shadow-lg p-8">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-6">Create Your Practice Exam</h2>
+            
+            <!-- Exam Source Selection -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-3">Exam Source</label>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <label class="flex items-start space-x-3 p-4 border-2 border-blue-500 bg-blue-50 rounded-lg cursor-pointer">
+                        <input type="radio" name="examSource" value="ai" checked onchange="toggleExamSource()" class="mt-1 w-5 h-5 text-blue-600">
+                        <div>
+                            <div class="font-semibold text-gray-800">AI-Generated Exam</div>
+                            <div class="text-sm text-gray-600">Create fresh practice questions</div>
+                        </div>
+                    </label>
+                    <label class="flex items-start space-x-3 p-4 border-2 border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                        <input type="radio" name="examSource" value="pdf" onchange="toggleExamSource()" class="mt-1 w-5 h-5 text-blue-600">
+                        <div>
+                            <div class="font-semibold text-gray-800">Upload Professor's Exam (PDF)</div>
+                            <div class="text-sm text-gray-600">Practice with actual past exams</div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- AI-Generated Options -->
+            <div id="aiOptions">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Subject Area</label>
+                        <select id="subject" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                            <optgroup label="1L Core Courses">
+                                <option value="Torts">Torts</option>
+                                <option value="Contracts">Contracts</option>
+                                <option value="Criminal Law">Criminal Law</option>
+                                <option value="Civil Procedure">Civil Procedure</option>
+                                <option value="Constitutional Law">Constitutional Law</option>
+                                <option value="Property">Property</option>
+                            </optgroup>
+                            <optgroup label="Upper Level Courses">
+                                <option value="Evidence">Evidence</option>
+                                <option value="Corporations">Corporations</option>
+                                <option value="Tax Law">Tax Law</option>
+                                <option value="Administrative Law">Administrative Law</option>
+                                <option value="Family Law">Family Law</option>
+                                <option value="Trusts and Estates">Trusts and Estates</option>
+                                <option value="Criminal Procedure">Criminal Procedure</option>
+                                <option value="Employment Law">Employment Law</option>
+                                <option value="Environmental Law">Environmental Law</option>
+                                <option value="Intellectual Property">Intellectual Property</option>
+                                <option value="Securities Regulation">Securities Regulation</option>
+                                <option value="Bankruptcy">Bankruptcy</option>
+                            </optgroup>
+                            <optgroup label="Skills Courses">
+                                <option value="Legal Writing">Legal Writing</option>
+                                <option value="Professional Responsibility">Professional Responsibility</option>
+                            </optgroup>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Difficulty Level</label>
+                        <select id="difficulty" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                            <option value="1L">1L (First Year)</option>
+                            <option value="2L">2L (Second Year)</option>
+                            <option value="3L">3L (Third Year)</option>
+                            <option value="Bar">Bar Prep</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-3">Select Exam Type</label>
+                    <div class="grid grid-cols-1 gap-3">
+                        <label class="flex items-center space-x-3 p-4 border-2 border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                            <input type="radio" name="examType" value="essay" checked class="w-5 h-5 text-blue-600">
+                            <div>
+                                <div class="font-semibold text-gray-800">Essay Exam (1 question, 30 points)</div>
+                                <div class="text-sm text-gray-600">Complex fact pattern requiring full IRAC analysis</div>
+                            </div>
+                        </label>
+                        <label class="flex items-center space-x-3 p-4 border-2 border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                            <input type="radio" name="examType" value="mc" class="w-5 h-5 text-blue-600">
+                            <div>
+                                <div class="font-semibold text-gray-800">Multiple Choice (5 questions, 20 points)</div>
+                                <div class="text-sm text-gray-600">Test your knowledge with MC questions</div>
+                            </div>
+                        </label>
+                        <label class="flex items-center space-x-3 p-4 border-2 border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                            <input type="radio" name="examType" value="mixed" class="w-5 h-5 text-blue-600">
+                            <div>
+                                <div class="font-semibold text-gray-800">Mixed Exam (3 MC + 1 Short Answer, 20 points)</div>
+                                <div class="text-sm text-gray-600">Combination of question types</div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PDF Upload Options -->
+            <div id="pdfOptions" class="hidden">
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Upload Professor's Exam (PDF)</label>
+                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 transition">
+                        <input type="file" id="pdfUpload" accept=".pdf" onchange="handlePDFUpload(event)" class="hidden">
+                        <label for="pdfUpload" class="cursor-pointer">
+                            <div class="text-4xl mb-2">📄</div>
+                            <div class="text-gray-700 font-semibold mb-1">Click to upload PDF</div>
+                            <div class="text-sm text-gray-500">Upload your professor's past exam</div>
+                        </label>
+                    </div>
+                    <div id="pdfStatus" class="mt-3 hidden">
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center justify-between">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-blue-600">📄</span>
+                                <span id="pdfFileName" class="text-gray-700 font-medium"></span>
+                            </div>
+                            <button onclick="clearPDF()" class="text-red-600 hover:text-red-700">Remove</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <span class="text-yellow-600">⚠️</span>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-yellow-800">How This Works</h3>
+                            <div class="mt-2 text-sm text-yellow-700">
+                                <p>The AI will extract questions from your professor's exam and let you practice answering them. After you submit, you'll get AI feedback on your answers.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Exam Duration (minutes)</label>
+                <input type="number" id="duration" value="45" min="15" max="180" 
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <button onclick="generateExam()" 
+                class="w-full bg-blue-600 text-white px-6 py-4 rounded-lg hover:bg-blue-700 transition font-semibold text-lg">
+                🎯 <span id="generateButtonText">Generate Practice Exam</span>
+            </button>
+        </div>
+
+        <!-- Exam Screen -->
+        <div id="examScreen" class="hidden">
+            <!-- Timer Bar -->
+            <div class="bg-white rounded-lg shadow-lg p-4 mb-4 sticky top-4 z-10">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <span class="font-semibold text-gray-800" id="examTitle"></span>
+                        <div class="text-sm text-gray-500 mt-1">You can submit anytime - no need to wait for timer</div>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <div id="timerDisplay" class="text-2xl font-bold text-blue-600"></div>
+                        <button onclick="submitExam()" class="bg-green-600 text-white px-8 py-3 rounded-lg hover:bg-green-700 transition font-bold shadow-lg hover:shadow-xl transform hover:scale-105">
+                            ✓ Submit Exam Now
+                        </button>
+                    </div>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2 mt-3">
+                    <div id="progressBar" class="bg-blue-600 h-2 rounded-full transition-all" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- Questions -->
+            <div id="questionsContainer" class="space-y-6"></div>
+        </div>
+
+        <!-- Results Screen -->
+        <div id="resultsScreen" class="hidden">
+            <div class="bg-white rounded-lg shadow-lg p-8">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6">📊 Your Exam Results</h2>
+                <div id="overallScore" class="mb-8"></div>
+                <div id="detailedFeedback" class="space-y-6"></div>
+                <button onclick="resetExam()" class="mt-6 bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition">
+                    Take Another Exam
+                </button>
+            </div>
+        </div>
+
+        <!-- Loading Overlay -->
+        <div id="loadingOverlay" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white rounded-lg p-8 text-center max-w-md">
+                <div class="loading-spinner mx-auto mb-4"></div>
+                <p class="text-gray-700 font-semibold mb-2" id="loadingText">Generating your exam...</p>
+                <p class="text-gray-500 text-sm" id="loadingSubtext">This may take 20-40 seconds</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let examData = null;
+        let timerInterval = null;
+        let timeRemaining = 0;
+        let currentAnswers = {};
+        let uploadedPDFText = null;
+
+        function toggleExamSource() {
+            const source = document.querySelector('input[name="examSource"]:checked').value;
+            const aiOptions = document.getElementById('aiOptions');
+            const pdfOptions = document.getElementById('pdfOptions');
+            const buttonText = document.getElementById('generateButtonText');
+            
+            if (source === 'ai') {
+                aiOptions.classList.remove('hidden');
+                pdfOptions.classList.add('hidden');
+                buttonText.textContent = 'Generate Practice Exam';
+            } else {
+                aiOptions.classList.add('hidden');
+                pdfOptions.classList.remove('hidden');
+                buttonText.textContent = 'Start Exam from PDF';
+            }
+        }
+
+        async function handlePDFUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+            document.getElementById('loadingText').textContent = 'Reading PDF...';
+            document.getElementById('loadingSubtext').textContent = 'Extracting exam questions';
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+
+                const response = await fetch('https://api.anthropic.com/v1/messages', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        model: 'claude-sonnet-4-20250514',
+                        max_tokens: 4000,
+                        messages: [{
+                            role: 'user',
+                            content: [
+                                {
+                                    type: 'document',
+                                    source: {
+                                        type: 'base64',
+                                        media_type: 'application/pdf',
+                                        data: base64
+                                    }
+                                },
+                                {
+                                    type: 'text',
+                                    text: 'Extract all exam questions from this PDF. Return the full text of the PDF, preserving all questions exactly as written.'
+                                }
+                            ]
+                        }]
+                    })
+                });
+
+                const data = await response.json();
+                uploadedPDFText = data.content.find(item => item.type === 'text')?.text || '';
+
+                document.getElementById('pdfFileName').textContent = file.name;
+                document.getElementById('pdfStatus').classList.remove('hidden');
+                
+                alert('PDF uploaded successfully! Click "Start Exam from PDF" to begin.');
+            } catch (error) {
+                console.error('PDF upload error:', error);
+                alert(`Error reading PDF: ${error.message}`);
+            } finally {
+                document.getElementById('loadingOverlay').classList.add('hidden');
+            }
+        }
+
+        function clearPDF() {
+            uploadedPDFText = null;
+            document.getElementById('pdfUpload').value = '';
+            document.getElementById('pdfStatus').classList.add('hidden');
+        }
+
+        async function callClaude(prompt, maxTokens = 2000) {
+            const response = await fetch('https://api.anthropic.com/v1/messages', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model: 'claude-sonnet-4-20250514',
+                    max_tokens: maxTokens,
+                    messages: [{ role: 'user', content: prompt }]
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`API error: ${response.status}`);
+            }
+
+            const data = await response.json();
+            return data.content.find(item => item.type === 'text')?.text || '';
+        }
+
+        function extractJSON(text) {
+            let clean = text.trim();
+            clean = clean.replace(/^```json\s*/i, '');
+            clean = clean.replace(/^```\s*/i, '');
+            clean = clean.replace(/\s*```$/i, '');
+            clean = clean.trim();
+            
+            const jsonMatch = clean.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                clean = jsonMatch[0];
+            }
+            
+            return JSON.parse(clean);
+        }
+
+        async function generateExam() {
+            const source = document.querySelector('input[name="examSource"]:checked').value;
+            const duration = parseInt(document.getElementById('duration').value);
+
+            if (source === 'pdf' && !uploadedPDFText) {
+                alert('Please upload a PDF first!');
+                return;
+            }
+
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+
+            try {
+                let prompt = '';
+                let examTitle = '';
+
+                if (source === 'pdf') {
+                    prompt = `Here is a professor's exam that was extracted from a PDF:
+
+${uploadedPDFText}
+
+Parse this exam and extract the questions. Format them for a student to practice.
+
+Return ONLY this JSON format:
+{
+  "questions": [
+    {
+      "type": "essay",
+      "text": "The full question text from the PDF",
+      "modelAnswer": "Key points a strong answer should cover",
+      "points": 30
+    }
+  ]
+}
+
+Extract ALL questions from the exam. For each question, preserve the original text exactly.`;
+                    
+                    examTitle = 'Professor\'s Exam';
+                } else {
+                    const subject = document.getElementById('subject').value;
+                    const difficulty = document.getElementById('difficulty').value;
+                    const examType = document.querySelector('input[name="examType"]:checked').value;
+                    examTitle = `${subject} - ${difficulty} Level`;
+
+                    if (examType === 'essay') {
+                        prompt = `Create 1 law school essay exam question for ${subject} at ${difficulty} level.
+
+Create a realistic fact pattern that requires IRAC analysis. Make it challenging and test multiple concepts.
+
+Return ONLY this JSON format:
+{
+  "questions": [
+    {
+      "type": "essay",
+      "text": "Your detailed fact pattern here (3-5 paragraphs)...",
+      "modelAnswer": "A strong answer would identify the following issues and apply IRAC: ...",
+      "points": 30
+    }
+  ]
+}`;
+                    } else if (examType === 'mc') {
+                        prompt = `Create 5 multiple choice questions for ${subject} at ${difficulty} level.
+
+Make them realistic law school exam questions with plausible wrong answers.
+
+Return ONLY this JSON format:
+{
+  "questions": [
+    {
+      "type": "mc",
+      "text": "Question text here?",
+      "options": ["A. First option", "B. Second option", "C. Third option", "D. Fourth option"],
+      "correctAnswer": "B",
+      "modelAnswer": "The correct answer is B because...",
+      "points": 4
+    }
+  ]
+}
+
+Create 5 questions following this exact format.`;
+                    } else {
+                        prompt = `Create a mixed exam for ${subject} at ${difficulty} level with:
+- 3 multiple choice questions (4 points each)
+- 1 short answer question (8 points)
+
+Return ONLY this JSON format:
+{
+  "questions": [
+    {
+      "type": "mc",
+      "text": "MC question?",
+      "options": ["A. ...", "B. ...", "C. ...", "D. ..."],
+      "correctAnswer": "B",
+      "modelAnswer": "Correct because...",
+      "points": 4
+    },
+    {
+      "type": "short",
+      "text": "Short answer question?",
+      "modelAnswer": "A good answer would...",
+      "points": 8
+    }
+  ]
+}`;
+                    }
+                }
+
+                const responseText = await callClaude(prompt, 4000);
+                examData = extractJSON(responseText);
+                
+                if (!examData.questions || examData.questions.length === 0) {
+                    throw new Error('No questions in response');
+                }
+                
+                startExam(examTitle, duration);
+            } catch (error) {
+                console.error('Generation error:', error);
+                alert(`Error: ${error.message}\n\nPlease try again.`);
+                document.getElementById('loadingOverlay').classList.add('hidden');
+            }
+        }
+
+        function startExam(title, duration) {
+            document.getElementById('loadingOverlay').classList.add('hidden');
+            document.getElementById('setupScreen').classList.add('hidden');
+            document.getElementById('examScreen').classList.remove('hidden');
+            
+            document.getElementById('examTitle').textContent = title;
+            timeRemaining = duration * 60;
+            updateTimer();
+            timerInterval = setInterval(updateTimer, 1000);
+
+            renderQuestions();
+        }
+
+        function updateTimer() {
+            const minutes = Math.floor(timeRemaining / 60);
+            const seconds = timeRemaining % 60;
+            const display = document.getElementById('timerDisplay');
+            display.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            
+            if (timeRemaining <= 300) {
+                display.classList.add('timer-warning');
+            }
+            
+            if (timeRemaining <= 0) {
+                clearInterval(timerInterval);
+                submitExam();
+                return;
+            }
+            
+            timeRemaining--;
+        }
+
+        function renderQuestions() {
+            const container = document.getElementById('questionsContainer');
+            container.innerHTML = examData.questions.map((q, idx) => {
+                let questionHTML = `
+                    <div class="bg-white rounded-lg shadow-lg p-6 fade-in">
+                        <div class="flex justify-between items-start mb-4">
+                            <h3 class="text-lg font-semibold text-gray-800">Question ${idx + 1}</h3>
+                            <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold">${q.points} points</span>
+                        </div>
+                        <div class="mb-4 text-gray-700 whitespace-pre-wrap">${q.text}</div>
+                `;
+
+                if (q.type === 'mc') {
+                    questionHTML += `
+                        <div class="space-y-2">
+                            ${q.options.map((opt) => `
+                                <label class="flex items-start space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                    <input type="radio" name="q${idx}" value="${opt}" 
+                                        onchange="currentAnswers[${idx}] = this.value; updateProgress()"
+                                        class="mt-1 w-5 h-5 text-blue-600">
+                                    <span class="text-gray-700">${opt}</span>
+                                </label>
+                            `).join('')}
+                        </div>
+                    `;
+                } else {
+                    const rows = q.type === 'essay' ? '14' : '8';
+                    questionHTML += `
+                        <textarea id="answer${idx}" rows="${rows}" 
+                            placeholder="Type your answer here... Use IRAC format for essays."
+                            oninput="currentAnswers[${idx}] = this.value; updateProgress()"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono text-sm"></textarea>
+                    `;
+                }
+
+                questionHTML += `</div>`;
+                return questionHTML;
+            }).join('');
+        }
+
+        function updateProgress() {
+            const answered = Object.keys(currentAnswers).length;
+            const total = examData.questions.length;
+            const percentage = (answered / total) * 100;
+            document.getElementById('progressBar').style.width = `${percentage}%`;
+        }
+
+        async function submitExam() {
+            console.log('Submit exam clicked');
+            console.log('Exam data:', examData);
+            console.log('Current answers:', currentAnswers);
+
+            clearInterval(timerInterval);
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+            document.getElementById('loadingText').textContent = 'Grading your exam...';
+            document.getElementById('loadingSubtext').textContent = 'AI is reviewing each answer';
+
+            try {
+                const results = [];
+                
+                for (let idx = 0; idx < examData.questions.length; idx++) {
+                    const q = examData.questions[idx];
+                    const studentAnswer = currentAnswers[idx] || '[No answer provided]';
+                    
+                    console.log(`Grading question ${idx + 1}...`);
+                    document.getElementById('loadingSubtext').textContent = `Grading question ${idx + 1} of ${examData.questions.length}...`;
+                    
+                    const gradePrompt = `Grade this law exam answer.
+
+Question: ${q.text}
+${q.options ? 'Options: ' + q.options.join(', ') + '\n' : ''}Model/Correct Answer: ${q.modelAnswer}
+Student Answer: ${studentAnswer}
+Max Points: ${q.points}
+
+Provide constructive feedback. Return ONLY this JSON:
+{
+  "score": ${q.points},
+  "feedback": "What the student did well and what needs improvement (2-3 sentences)",
+  "improvement": "Specific actionable advice (1-2 sentences)"
+}`;
+
+                    const gradeText = await callClaude(gradePrompt, 800);
+                    console.log(`Question ${idx + 1} graded, response:`, gradeText);
+                    
+                    const gradeData = extractJSON(gradeText);
+                    console.log(`Question ${idx + 1} parsed data:`, gradeData);
+                    
+                    results.push({ 
+                        questionIdx: idx, 
+                        ...gradeData, 
+                        question: q, 
+                        studentAnswer 
+                    });
+                }
+
+                console.log('All questions graded, displaying results:', results);
+                displayResults(results);
+            } catch (error) {
+                console.error('Grading error:', error);
+                alert(`Grading error: ${error.message}\n\nCheck console for details.`);
+                document.getElementById('loadingOverlay').classList.add('hidden');
+            }
+        }
+
+        function displayResults(results) {
+            document.getElementById('loadingOverlay').classList.add('hidden');
+            document.getElementById('examScreen').classList.add('hidden');
+            document.getElementById('resultsScreen').classList.remove('hidden');
+
+            const totalPoints = results.reduce((sum, r) => sum + r.question.points, 0);
+            const earnedPoints = results.reduce((sum, r) => sum + (r.score || 0), 0);
+            const percentage = Math.round((earnedPoints / totalPoints) * 100);
+
+            let gradeColor = 'text-red-600';
+            let gradeLetter = 'F';
+            if (percentage >= 90) { gradeColor = 'text-green-600'; gradeLetter = 'A'; }
+            else if (percentage >= 80) { gradeColor = 'text-blue-600'; gradeLetter = 'B'; }
+            else if (percentage >= 70) { gradeColor = 'text-yellow-600'; gradeLetter = 'C'; }
+            else if (percentage >= 60) { gradeColor = 'text-orange-600'; gradeLetter = 'D'; }
+
+            document.getElementById('overallScore').innerHTML = `
+                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-8 text-center">
+                    <div class="text-7xl font-bold ${gradeColor} mb-2">${gradeLetter}</div>
+                    <div class="text-4xl font-bold text-gray-700 mb-2">${percentage}%</div>
+                    <div class="text-gray-600 text-lg">${earnedPoints.toFixed(1)} / ${totalPoints} points</div>
+                </div>
+            `;
+
+            document.getElementById('detailedFeedback').innerHTML = results.map((r, idx) => `
+                <div class="border border-gray-200 rounded-lg p-6">
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="text-lg font-semibold text-gray-800">Question ${idx + 1}</h3>
+                        <div class="text-2xl font-bold ${r.score >= r.question.points * 0.9 ? 'text-green-600' : r.score >= r.question.points * 0.7 ? 'text-yellow-600' : 'text-red-600'}">
+                            ${r.score} / ${r.question.points}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4 p-3 bg-gray-50 rounded text-sm">
+                        <strong class="text-gray-800">Question:</strong>
+                        <div class="mt-1 text-gray-700">${r.question.text.substring(0, 400)}${r.question.text.length > 400 ? '...' : ''}</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <strong class="text-gray-800">Your Answer:</strong>
+                        <div class="mt-2 p-3 bg-blue-50 rounded text-sm text-gray-700 whitespace-pre-wrap max-h-60 overflow-y-auto">
+                            ${r.studentAnswer}
+                        </div>
+                    </div>
+
+                    <div class="mb-4 p-4 bg-green-50 border-l-4 border-green-400 rounded">
+                        <strong class="text-green-800">✅ Feedback:</strong>
+                        <div class="mt-2 text-green-900">${r.feedback}</div>
+                    </div>
+
+                    <div class="mb-4 p-4 bg-purple-50 border-l-4 border-purple-400 rounded">
+                        <strong class="text-purple-800">📖 Model Answer:</strong>
+                        <div class="mt-2 text-purple-900 whitespace-pre-wrap">${r.question.modelAnswer}</div>
+                    </div>
+
+                    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
+                        <strong class="text-yellow-800">💡 How to Improve:</strong>
+                        <div class="mt-2 text-yellow-900">${r.improvement}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function resetExam() {
+            examData = null;
+            currentAnswers = {};
+            timeRemaining = 0;
+            if (timerInterval) clearInterval(timerInterval);
+            
+            document.getElementById('resultsScreen').classList.add('hidden');
+            document.getElementById('setupScreen').classList.remove('hidden');
+            document.getElementById('progressBar').style.width = '0%';
+        }
+    </script>
+</body>
+</html>
